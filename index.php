@@ -64,11 +64,32 @@ function fstbToGV($con) {
         <?
             echo "\n";
             foreach($states as $state) {
-                echo "    node [shape = circle]; $state\n";
+                $label = '<font face="Arial" point-size="16">' . $state . '</font>';
+            
+                echo "    node [shape = circle, label =< $label >]; $state\n";
             }
             echo "\n";
             foreach($transitions as $transition) {
-                echo "    {$transition['from']} -> {$transition['to']} [ label = \"{$transition['guard']}\\n{$transition['action']}\" ]\n";
+                $action = str_replace(",", ", ", $transition['action']);
+                $guard = str_replace(",", ", ", $transition['guard']);
+                
+                $htmls = [];
+                
+                if ($guard) {
+                    $htmls[] = '<font face="Arial" point-size="15" color="blue">'
+                    .htmlentities($guard)
+                    .'</font>';
+                }
+                
+                if ($action) {
+                    $htmls[] = '<font face="Arial" point-size="15" color="red">'
+                        .htmlentities($action)
+                        .'</font>';
+                }
+                    
+                $html = implode("<br></br>", $htmls);
+                
+                echo "    {$transition['from']} -> {$transition['to']} [ label =< $html > ]\n";
             }
         ?>
     }
