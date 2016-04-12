@@ -129,12 +129,14 @@ if (strlen($fst) && strlen($sid)) {
     $processed = true;
     @unlink("{$sid}.png");
     @unlink("{$sid}.fstb");
+    @unlink("{$sid}.rank.txt");
+    @unlink("{$sid}.aspic.txt");
     $gv = fstToGV($fst);
     file_put_contents("{$sid}.gv", $gv);
     exec("dot -Tpng {$sid}.gv -o {$sid}.png");
     
     if ($_POST['analyze']) {
-        exec("bin/aspic -ranking {$sid}.fst");
+        exec("bin/aspic -ranking {$sid}.fst > {$sid}.aspic.txt 2>&1");
         
         if (file_exists("{$baseSid}.fstb")) {
             copy("{$baseSid}.fstb", "{$sid}.fstb");
@@ -154,12 +156,14 @@ if ($analyzed = file_exists("{$sid}.fstb")) {
     foreach($matches[0] as $index => $match) {
         $state = $matches[1][$index];
         $invariants[$state] = explode(" && ", $matches[2][$index]);
+    
+        if (substr($state, 0, 4) == "____") {
+            $initialState = $state;
+        }
     }
     
-    $initialState = $state;
-    
-    exec("bin/rank {$sid}.fstb > {$sid}.txt");
-    $rank = file_get_contents("{$sid}.txt");
+    exec("bin/rank -wcet {$sid}.fstb > {$sid}.rank.txt 2>&1");
+    $rank = file_get_contents("{$sid}.rank.txt");
     
     $terminates = false;    
     if (preg_match("'\| +Ranking Function +\|'", $rank, $match)) {
@@ -216,6 +220,14 @@ if ($analyzed = file_exists("{$sid}.fstb")) {
             margin-left: 12px;
             padding: 0;
         }
+        
+        a {
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
     </style>
     <meta charset="utf-8">
     <script>
@@ -227,7 +239,7 @@ if ($analyzed = file_exists("{$sid}.fstb")) {
             <form action="?" style="padding: 0; margin: 0" method="post">
                 <b>Autómata (formato RANK)</b><br>
                 <textarea name="fst" style="min-width: 400px; min-height: 400px; padding: 0; margin: 3px"><?= htmlentities($fst) ?></textarea><br>
-                <input type="checkbox" name="analyze" <?=$analyzed ? 'checked' : ''?>> Análisis completo
+                <input type="checkbox" name="analyze" <?=$_POST['analyze'] ? 'checked' : ''?>> Análisis completo
                 <div style="display: inline-block; width: 20px"></div>
                 <button type="submit">Mostrar autómata</button>
             </form>
@@ -296,6 +308,22 @@ if ($analyzed = file_exists("{$sid}.fstb")) {
                                 <?
                             }
                         ?>
+                        </table>
+                    </div>
+                <? } ?>
+                <? if ($_POST['analyze']) { ?>
+                    <br>
+                    <div style="border: 1px solid black; padding: 6px; text-align: center; vertical-align: middle;">
+                        <table style="width: 100%; line-height: 1.5em">
+                            <thead><tr>
+                                <td colspan="4">Archivos generados</td>
+                            </tr></thead>
+                            <tr>
+                                <? if (file_exists("{$sid}.fst")) { ?><td><a target="_blank" href="<?=$sid?>.fst">FST original</td><a><? } ?>
+                                <? if (file_exists("{$sid}.fstb")) { ?><td><a target="_blank" href="<?=$sid?>.fstb">FSTB por ASPIC</td><a><? } ?>
+                                <? if (file_exists("{$sid}.aspic.txt")) { ?><td><a target="_blank" href="<?=$sid?>.aspic.txt">Salida de ASPIC</td><a><? } ?>
+                                <? if (file_exists("{$sid}.rank.txt")) { ?><td><a target="_blank" href="<?=$sid?>.rank.txt">Salida de RANK</td><a><? } ?>
+                            </tr>
                         </table>
                     </div>
                 <? } ?>
